@@ -70,7 +70,7 @@ public:
 
     // Initialization helpers
     string read_rostopic_from_config(const afBaseObjectAttribsPtr a_objectAttribs);
-    void initialize_ros_subscribers(const afBaseObjectAttribsPtr a_objectAttribs);
+    void initialize_ros_subscribers(const afCameraPtr a_objectAttribs);
     void set_window_size_to_pub_resolution(const afBaseObjectAttribsPtr a_objectAttribs);
     void load_bg_quad_shaders();
     void create_screen_filling_quad();

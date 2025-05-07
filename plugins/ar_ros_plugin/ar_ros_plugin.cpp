@@ -49,7 +49,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.hpp>
-
+#include <rclcpp_action/rclcpp_action.hpp>
 using namespace std;
 
 //------------------------------------------------------------------------------
@@ -80,10 +80,10 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 {
 
     g_current_filepath = get_current_filepath();
-    initialize_ros_subscribers(a_objectAttribs);
 
     // Camera config
     m_camera = (afCameraPtr)a_afObjectPtr;
+    initialize_ros_subscribers(m_camera);
     m_camera->setOverrideRendering(true);
     ar_world = m_camera->getInternalCamera()->getParentWorld();
     set_window_size_to_pub_resolution(a_objectAttribs);
@@ -105,14 +105,6 @@ int afCameraHMD::init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAtt
 
     cerr << "INFO! LOADING AR PLUGIN \n\n\n";
 
-    auto node = rclcpp::Node::make_shared("image_sub_test");
-    auto sub = node->create_subscription<sensor_msgs::msg::Image>(
-        "/zed/zed_node/left/image_rect_color",
-        rclcpp::SensorDataQoS(),
-        [](const sensor_msgs::msg::Image::SharedPtr msg) {
-            std::cout << "✅ Image received, encoding: " << msg->encoding << std::endl;
-        });
-    rclcpp::spin(node);
     return 1;
 }
 
@@ -213,8 +205,6 @@ void afCameraHMD::left_img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg)
 
 void img_ptr_deep_copy(cv_bridge::CvImagePtr &img_ptr, cv_bridge::CvImagePtr &img_ptr_copy)
 {
-    cout << "deepcopy" << endl;
-    
     img_ptr_copy->image = img_ptr->image.clone();
     img_ptr_copy->encoding = img_ptr->encoding;
     img_ptr_copy->header = img_ptr->header;
@@ -286,21 +276,21 @@ string afCameraHMD::read_rostopic_from_config(const afBaseObjectAttribsPtr a_obj
     return rostopic;
 }
 
-void afCameraHMD::initialize_ros_subscribers(const afBaseObjectAttribsPtr a_objectAttribs)
+void afCameraHMD::initialize_ros_subscribers(const afCameraPtr m_camera)
 {
 
+    string rostopic = m_camera->getNamespace() + m_camera->getName();
+    ros_node_handle = afROSNode::getNode(rostopic);
+    cout << "Ros handle aquired " << ros_node_handle << endl;
     // string rostopic = read_rostopic_from_config(a_objectAttribs);
     // ros_node_handle = afROSNode::getNodeAndRegister(rostopic);
-    // auto test_sub = ros_node_handle->create_subscription<sensor_msgs::msg::Image>(
-    //     rostopic, rclcpp::SensorDataQoS(),
-    //     [](const sensor_msgs::msg::Image::SharedPtr msg){
-    //         std::cout << "Lambda image callback!" << std::endl;
-    //     });
-    // ambf_ral::create_subscriber<AMBF_RAL_MSG(sensor_msgs, Image), afCameraHMD>
-    //     (img_subscriber, ros_node_handle,  rostopic, 1, &afCameraHMD::left_img_callback, this);
-    // ambf_ral::create_subscriber<AMBF_RAL_MSG(std_msgs, Bool), afCameraHMD>
-    //     (ar_activate_subscriber, ros_node_handle, "/ar_activate", 1, &afCameraHMD::ar_activate_callback, this);
+
+    ambf_ral::create_subscriber<AMBF_RAL_MSG(sensor_msgs, Image), afCameraHMD>
+        (img_subscriber, ros_node_handle,  "/zed/zed_node/left/image_rect_color", 1, &afCameraHMD::left_img_callback, this);
+    ambf_ral::create_subscriber<AMBF_RAL_MSG(std_msgs, Bool), afCameraHMD>
+        (ar_activate_subscriber, ros_node_handle, "/ar_activate", 1, &afCameraHMD::ar_activate_callback, this);
             
+
     // Ambf camera
     // img_subscriber = ros_node_handle->subscribe("/ambf/env/cameras/stereoL/ImageData", 2, &afCameraHMD::left_img_callback, this);
     // right_sub = ros_node_handle->subscribe("/ambf/env/cameras/stereoR/ImageData", 2, &afCameraHMD::right_img_callback, this);
