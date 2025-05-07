@@ -43,8 +43,14 @@
 // To silence warnings on MacOS
 #define GL_SILENCE_DEPRECATION
 #include <afFramework.h>
-#include <sensor_msgs/Image.h>
+#include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include <rclcpp/rclcpp.hpp>
+
+#include <ambf_server/ambf_ral.h>
+#include <ambf_server/ambf_ral_config.h>
+#include <ambf_server/RosComBase.h>
 
 using namespace std;
 using namespace ambf;
@@ -60,24 +66,26 @@ public:
     virtual bool close() override;
 
     void updateHMDParams();
-
     void makeFullScreen();
-    // Initialization methods
+
+    // Initialization helpers
     string read_rostopic_from_config(const afBaseObjectAttribsPtr a_objectAttribs);
-    void initilize_ros_subscribers(const afBaseObjectAttribsPtr a_objectAttribs);
+    void initialize_ros_subscribers(const afBaseObjectAttribsPtr a_objectAttribs);
     void set_window_size_to_pub_resolution(const afBaseObjectAttribsPtr a_objectAttribs);
     void load_bg_quad_shaders();
     void create_screen_filling_quad();
 
-    // ROS attributes and callbacks
-    ros::NodeHandle *ros_node_handle;
-    ros::Subscriber img_subscriber;
-    ros::Subscriber ar_activate_subscriber;
-    void ar_activate_callback(const std_msgs::Bool::ConstPtr &msg);
-    void left_img_callback(const sensor_msgs::ImageConstPtr &msg);
-    cv_bridge::CvImagePtr img_ptr = nullptr;
+    // ROS 2 attributes and callbacks
+    // rclcpp::Node::SharedPtr ros_node_handle;
+    ambf_ral::node_ptr_t ros_node_handle;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ar_activate_subscriber;
+
+    void ar_activate_callback(AMBF_RAL_MSG_PTR(std_msgs, Bool) msg);
+    void left_img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg);
     void process_and_set_ros_texture();
 
+    cv_bridge::CvImagePtr img_ptr = nullptr;
     cTexture2dPtr ros_texture;
 
 protected:
@@ -85,13 +93,16 @@ protected:
     afCameraPtr m_camera;
     cMesh *m_screen_filling_quad;
     bool activate_ar = true;
-    int m_width;
-    int m_height;
+    int m_width = 640;
+    int m_height = 480;
     cShaderProgramPtr m_shaderPgm;
 
-    cWorld *m_back_layer_world;
-    cWorld *empty_world;
-    cWorld *ar_world;
+    cWorld *m_back_layer_world = nullptr;
+    cWorld *empty_world = nullptr;
+    cWorld *ar_world = nullptr;
+
+    afBaseObjectPtr m_objectPtr;
+    afBaseObjectAttribsPtr m_objectAttribs;
 };
 
 AF_REGISTER_OBJECT_PLUGIN(afCameraHMD)
