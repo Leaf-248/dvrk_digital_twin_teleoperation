@@ -43,22 +43,24 @@
 // To silence warnings on MacOS
 #define GL_SILENCE_DEPRECATION
 #include <afFramework.h>
+#include <ambf_server/RosComBase.h>
+
+#if AMBF_ROS1
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <rclcpp/rclcpp.hpp>
-
+#elif AMBF_ROS2
 #include <ambf_server/ambf_ral.h>
 #include <ambf_server/ambf_ral_config.h>
-#include <ambf_server/RosComBase.h>
-
+#endif
 using namespace std;
 using namespace ambf;
 
-class afCameraHMD : public afObjectPlugin
+class afARPlugin : public afObjectPlugin
 {
 public:
-    afCameraHMD();
+    afARPlugin();
     virtual int init(const afBaseObjectPtr a_afObjectPtr, const afBaseObjectAttribsPtr a_objectAttribs) override;
     virtual void graphicsUpdate() override;
     virtual void physicsUpdate(double dt) override;
@@ -70,13 +72,13 @@ public:
 
     // Initialization helpers
     string read_rostopic_from_config(const afBaseObjectAttribsPtr a_objectAttribs);
-    void initialize_ros_subscribers(const afCameraPtr a_objectAttribs);
+    void initialize_ros_subscribers();
     void set_window_size_to_pub_resolution(const afBaseObjectAttribsPtr a_objectAttribs);
     void load_bg_quad_shaders();
     void create_screen_filling_quad();
 
     // ROS 2 attributes and callbacks
-    // rclcpp::Node::SharedPtr ros_node_handle;
+    #if AMBF_ROS2
     ambf_ral::node_ptr_t ros_node_handle;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_subscriber;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ar_activate_subscriber;
@@ -84,7 +86,7 @@ public:
     void ar_activate_callback(AMBF_RAL_MSG_PTR(std_msgs, Bool) msg);
     void left_img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg);
     void process_and_set_ros_texture();
-
+    #endif
     cv_bridge::CvImagePtr img_ptr = nullptr;
     cTexture2dPtr ros_texture;
 
@@ -105,4 +107,4 @@ protected:
     afBaseObjectAttribsPtr m_objectAttribs;
 };
 
-AF_REGISTER_OBJECT_PLUGIN(afCameraHMD)
+AF_REGISTER_OBJECT_PLUGIN(afARPlugin)
