@@ -45,14 +45,16 @@
 #include <afFramework.h>
 #include <ambf_server/RosComBase.h>
 
+#include <ambf_server/ambf_ral_config.h>
 #if AMBF_ROS1
+#include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
+#elif AMBF_ROS2
+#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <rclcpp/rclcpp.hpp>
-#elif AMBF_ROS2
 #include <ambf_server/ambf_ral.h>
-#include <ambf_server/ambf_ral_config.h>
 #endif
 using namespace std;
 using namespace ambf;
@@ -78,15 +80,20 @@ public:
     void create_screen_filling_quad();
 
     // ROS 2 attributes and callbacks
-    #if AMBF_ROS2
+    #if AMBF_ROS1
+    ros::NodeHandle *ros_node_handle;
+    ros::Subscriber img_subscriber;
+    ros::Subscriber ar_activate_subscriber;
+    void ar_activate_callback(const std_msgs::Bool::ConstPtr &msg);
+    void img_callback(const sensor_msgs::ImageConstPtr &msg);
+    #elif AMBF_ROS2
     ambf_ral::node_ptr_t ros_node_handle;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_subscriber;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ar_activate_subscriber;
-
     void ar_activate_callback(AMBF_RAL_MSG_PTR(std_msgs, Bool) msg);
-    void left_img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg);
-    void process_and_set_ros_texture();
+    void img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg);
     #endif
+    void process_and_set_ros_texture();
     cv_bridge::CvImagePtr img_ptr = nullptr;
     cTexture2dPtr ros_texture;
 

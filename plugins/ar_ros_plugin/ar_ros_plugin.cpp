@@ -183,7 +183,7 @@ void afARPlugin::ar_activate_callback(AMBF_RAL_MSG_PTR(std_msgs, Bool) msg)
     activate_ar = msg->data;
 }
 
-void afARPlugin::left_img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg)
+void afARPlugin::img_callback(AMBF_RAL_MSG_PTR(sensor_msgs, Image) msg)
 {
     try
     {
@@ -269,15 +269,21 @@ string afARPlugin::read_rostopic_from_config(const afBaseObjectAttribsPtr a_obje
 
 void afARPlugin::initialize_ros_subscribers()
 {
+    #if AMBF_ROS1
+    ros_node_handle = afROSNode::getNode();
+    string rostopic = read_rostopic_from_config(a_objectAttribs);
+    img_subscriber = ros_node_handle->subscribe(rostopic, 2, &afARPlugin::img_callback, this);
+    ar_activate_subscriber = ros_node_handle->subscribe("/ar_activate", 2, &afARPlugin::ar_activate_callback, this);
 
+    #elif AMBF_ROS2
     ros_node_handle = afROSNode::getNode(m_camera->getNamespace() + m_camera->getName());
     string rostopic = read_rostopic_from_config(a_objectAttribs);
 
     ambf_ral::create_subscriber<AMBF_RAL_MSG(sensor_msgs, Image), afARPlugin>
-        (img_subscriber, ros_node_handle,  rostopic, 1, &afARPlugin::left_img_callback, this);
+        (img_subscriber, ros_node_handle,  rostopic, 1, &afARPlugin::img_callback, this);
     ambf_ral::create_subscriber<AMBF_RAL_MSG(std_msgs, Bool), afARPlugin>
         (ar_activate_subscriber, ros_node_handle, "/ar_activate", 1, &afARPlugin::ar_activate_callback, this);
-
+    #endif
 }
 
 void afARPlugin::load_bg_quad_shaders()

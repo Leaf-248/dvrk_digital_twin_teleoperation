@@ -27,8 +27,6 @@ bool afCameraProjectionOverride::computeProjectionFromIntrinsics(const afCameraI
     double s = a_attribs->m_s;
     double W = a_attribs->width;
     double H = a_attribs->height;
-    // double image_center_x = W / 2.;
-    // double image_center_y = H / 2.;
     double n = a_nearPlane;
     double f = a_farPlane;
 
